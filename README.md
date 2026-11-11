@@ -8,19 +8,23 @@ Aplicación web del **Trabajo Práctico 4** de *Aprendizaje Automático y Grande
 
 ## Qué hace
 
-Pronostica la **demanda eléctrica del mes siguiente** (en GWh) para cada una de las 9 regiones del
-Mercado Eléctrico Mayorista argentino, a partir de dos datos que se conocen con un mes de anticipación:
-la demanda del mes anterior y la del mismo mes del año anterior.
+Es un tablero con cuatro secciones, pensado para que alguien sin conocimientos de programación pueda probar los
+modelos y entender los resultados:
 
-- **Pronóstico individual:** región, año y mes; las demandas se completan con la historia de CAMMESA
-  y se pueden editar. Muestra el pronóstico, la regla simple «igual que hace un año», el rango de error
-  esperable y, si el mes está en los datos, el valor real.
-- **Validación de entradas:** valores positivos, rangos por región (detecta errores de unidades),
-  saltos poco habituales y meses fuera del período con datos.
-- **Contexto:** gráfico interactivo con la historia de la región y el pronóstico; explicación de cuánto
-  aporta cada variable; pestaña con el desempeño en la prueba, por región.
-- **Lote:** carga de un CSV con muchos pronósticos y descarga de los resultados (hay plantilla de ejemplo).
-- **Registro:** las predicciones guardadas quedan registradas con fecha, para analizar el uso y la deriva.
+| Sección | Página | Qué se puede hacer |
+|---|---|---|
+| Inicio | Inicio | Qué resuelve el proyecto, los resultados en tres números, cómo leer cada término y qué variables se usan. |
+| **TP2 · Regresión** | Probar el pronóstico | Elegir región y mes y ver el pronóstico de Ridge junto a la regla «igual que hace un año»; pronóstico en lote desde un CSV; registro de predicciones. |
+| | Comparar modelos | Tabla de los 6 modelos y 3 reglas; validación contra prueba; pronósticos de cada modelo contra lo real, por región. |
+| | Jugar con las variables | Sacar o agregar variables, prender o apagar la normalización y mover α: Ridge se reentrena al instante. |
+| **TP3 · Clasificación** | Probar «sube o baja» | Para una región y un mes, qué dijo cada modelo, qué dijo la persistencia y qué pasó. |
+| | Umbral y curvas | Mover el umbral y ver la matriz de confusión, las métricas y el punto sobre las curvas ROC y precisión-exhaustividad. |
+| | Comparar modelos | Tabla de los 8 clasificadores, F1 en validación y prueba, sobreajuste y matrices de confusión. |
+| Agrupamiento | Grupos y buscador | Curva de la silueta, qué representa cada grupo y buscador «¿en qué grupo está mi región / mi cliente?», por región y mes o por agente (868 series). |
+| Ayuda | Preguntas frecuentes | Respuestas cortas a las preguntas de la cátedra. |
+
+Validación de entradas: valores positivos, rangos por región (detecta errores de unidades), saltos poco
+habituales y meses fuera del período con datos.
 
 ## El modelo
 
@@ -39,13 +43,16 @@ caída de la demanda y se evaluó cuando volvía a crecer. Por eso la aplicació
 ## Estructura
 
 ```
-app.py                     aplicación Streamlit
-entrenar.py                reconstruye y serializa el modelo a partir de los datos
-datos/serie_regional.csv   demanda mensual por región (9 regiones × 38 meses), ya limpia
-modelo/ridge_regional.joblib   modelo serializado (Pipeline completo)
-modelo/metadatos.json      métricas de la prueba, rangos por región y coeficientes
-registro/                  registro de predicciones (se crea al usarla)
-requirements.txt           dependencias con versión fija
+app.py                         punto de entrada: navegación entre páginas
+comun.py                       carga de datos, formato y colores compartidos
+paginas/                       una página por sección del tablero
+entrenar.py                    reconstruye y serializa el modelo Ridge (modelo/ridge_regional.joblib)
+preparar_resultados.py         reproduce TP2, TP3 y el agrupamiento y guarda los resultados en resultados/
+datos/serie_regional.csv       demanda mensual por región (9 regiones × 38 meses), ya limpia
+datos/agentes_perfiles.csv     perfil y grupo de cada serie agente-tarifa (análisis por agente)
+modelo/                        modelo serializado y metadatos (métricas, rangos, coeficientes)
+resultados/                    métricas, pronósticos y probabilidades de validación y prueba
+requirements.txt               dependencias con versión fija
 ```
 
 ## Ejecutar localmente
@@ -59,6 +66,7 @@ python -m venv .venv
 source .venv/bin/activate          # en Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python entrenar.py                 # opcional: vuelve a generar el modelo (da RMSE 76,7 / 71,0 GWh)
+python preparar_resultados.py      # opcional: vuelve a calcular los resultados del TP2 y el TP3 (unos 20 s)
 streamlit run app.py
 ```
 
