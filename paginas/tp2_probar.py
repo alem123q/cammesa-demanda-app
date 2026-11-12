@@ -205,8 +205,8 @@ with tab1:
         k3.metric("Lo que realmente se consumió", gwh(real),
                   delta=f"error del modelo {pct((pred / real - 1) * 100)}", delta_color="off")
     else:
-        k3.metric("Rango esperable (8 de cada 10 casos)",
-                  f"{lo / 1000:,.0f} – {hi / 1000:,.0f} GWh".replace(",", "."))
+        k3.metric("Rango esperable, GWh (8 de cada 10 casos)",
+                  f"{lo / 1000:,.0f} – {hi / 1000:,.0f}".replace(",", "."))
     st.markdown(
         f"En la evaluación, el valor real quedó entre **{pct(q['10'])}** y **{pct(q['90'])}** del pronóstico en "
         f"8 de cada 10 casos. El error típico en esta región fue de "
