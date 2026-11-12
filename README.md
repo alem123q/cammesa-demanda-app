@@ -4,7 +4,7 @@ Aplicación web del **Trabajo Práctico 4** de *Aprendizaje Automático y Grande
 (Ingeniería en Computación, Universidad Nacional de Rafaela, 2026).
 **Grupo 6:** Francisco Alemandi · Eloy Kirov · Sebastián Palavecino.
 
-🔗 **Aplicación desplegada:** _(completar con la URL de Streamlit Community Cloud)_
+🔗 **Aplicación desplegada:** https://cammesa-demanda-unraf.streamlit.app/
 
 ## Qué hace
 
