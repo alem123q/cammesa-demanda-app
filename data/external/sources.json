@@ -131,7 +131,7 @@
     "url": "https://apis.datos.gob.ar/series/api/series/",
     "series_ids": {
       "GBA/housing_utilities": "146.3_IVIVIENGBA_DICI_M_47",
-      "GBA/general": "103.1_I2N_2016_M_19",
+      "GBA/general": "145.3_INGGBAGBA_DICI_M_10",
       "Pampeana/housing_utilities": "146.3_IVIVIENANA_DICI_M_52",
       "Pampeana/general": "145.3_INGPAMANA_DICI_M_15",
       "Cuyo/housing_utilities": "146.3_IVIVIENUYO_DICI_M_48",
