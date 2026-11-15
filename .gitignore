@@ -1,7 +1,7 @@
 __pycache__/
 *.pyc
 .venv/
-registro/*.csv
+logs/*.csv
 
 # Raw daily weather (regenerable with scripts/download_external.py, ~4 MB)
 data/external/weather_daily_cities.csv

@@ -7,7 +7,7 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.metrics import mean_squared_error
 R='/home/claude/cammesa-demanda-app/'
-s=pd.read_csv(R+'datos/serie_regional.csv')
+s=pd.read_csv(R+'data/processed/serie_regional.csv')
 w=pd.read_csv(R+'data/external/weather_monthly_regions.csv')
 e=pd.read_csv(R+'data/external/emae_monthly.csv')
 S=s.pivot(index='indice_tiempo',columns='region',values='demanda_MWh')/1000

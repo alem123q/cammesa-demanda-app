@@ -3,7 +3,7 @@ from sklearn.linear_model import Ridge, LinearRegression
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.metrics import mean_squared_error
 D=pd.read_csv('analysis/tabla_ext.csv')
-s=pd.read_csv('/home/claude/cammesa-demanda-app/datos/serie_regional.csv')
+s=pd.read_csv('/home/claude/cammesa-demanda-app/data/processed/serie_regional.csv')
 S=s.set_index(['region','indice_tiempo'])['demanda_MWh']/1000
 D['lag13']=[S.get((r,str(pd.Period(f,'M')-13)),np.nan) for r,f in zip(D.region,D.fecha)]
 D['yoy1']=np.log(D.lag1/D.lag13)
