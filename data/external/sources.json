@@ -1,0 +1,130 @@
+{
+  "weather": {
+    "url": "https://archive-api.open-meteo.com/v1/archive",
+    "start": "2016-01-01",
+    "end": "2026-10-31",
+    "base_temp_c": 18.0,
+    "cities": {
+      "GRAN BS.AS.": {
+        "Buenos Aires": [
+          -34.61,
+          -58.38
+        ]
+      },
+      "BUENOS AIRES": {
+        "La Plata": [
+          -34.92,
+          -57.95
+        ],
+        "Mar del Plata": [
+          -38.0,
+          -57.56
+        ],
+        "Bahia Blanca": [
+          -38.72,
+          -62.27
+        ]
+      },
+      "LITORAL": {
+        "Rosario": [
+          -32.95,
+          -60.65
+        ],
+        "Santa Fe": [
+          -31.63,
+          -60.7
+        ],
+        "Parana": [
+          -31.73,
+          -60.52
+        ]
+      },
+      "CENTRO": {
+        "Cordoba": [
+          -31.42,
+          -64.18
+        ],
+        "Rio Cuarto": [
+          -33.12,
+          -64.35
+        ],
+        "San Luis": [
+          -33.3,
+          -66.34
+        ]
+      },
+      "CUYO": {
+        "Mendoza": [
+          -32.89,
+          -68.83
+        ],
+        "San Juan": [
+          -31.54,
+          -68.52
+        ]
+      },
+      "NOROESTE": {
+        "Tucuman": [
+          -26.82,
+          -65.22
+        ],
+        "Salta": [
+          -24.78,
+          -65.41
+        ],
+        "Santiago del Estero": [
+          -27.78,
+          -64.26
+        ]
+      },
+      "NORESTE": {
+        "Resistencia": [
+          -27.45,
+          -58.99
+        ],
+        "Corrientes": [
+          -27.47,
+          -58.83
+        ],
+        "Posadas": [
+          -27.37,
+          -55.9
+        ]
+      },
+      "COMAHUE": {
+        "Neuquen": [
+          -38.95,
+          -68.06
+        ],
+        "Santa Rosa": [
+          -36.62,
+          -64.29
+        ],
+        "Bariloche": [
+          -41.13,
+          -71.31
+        ]
+      },
+      "PATAGONICA": {
+        "Comodoro Rivadavia": [
+          -45.86,
+          -67.48
+        ],
+        "Trelew": [
+          -43.25,
+          -65.31
+        ],
+        "Rio Gallegos": [
+          -51.62,
+          -69.22
+        ]
+      }
+    }
+  },
+  "emae": {
+    "url": "https://apis.datos.gob.ar/series/api/series/",
+    "series_id": "143.3_NO_PR_2004_A_21",
+    "start": "2016-01-01"
+  },
+  "downloaded": "2026-11-14"
+}
