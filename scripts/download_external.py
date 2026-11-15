@@ -8,6 +8,9 @@ It writes to data/external/:
   - weather_daily_cities.csv      daily temperature per city (raw, from Open-Meteo)
   - weather_monthly_regions.csv   monthly weather per CAMMESA region (average of its cities)
   - emae_monthly.csv              INDEC monthly economic activity estimator (EMAE)
+  - prices_monthly_regions.csv    INDEC CPI by region: housing & utilities division vs. general level
+                                  (proxy for the real electricity tariff)
+  - price_series_candidates.csv   every CPI series the search found, to check the matching
   - sources.json                  URLs, series IDs and download date
 
 Needs pandas. If you get "CERTIFICATE_VERIFY_FAILED", install truststore (uses the
@@ -169,9 +172,70 @@ def download_emae(series_id: str | None) -> dict:
     return {"url": SERIES_API, "series_id": sid, "start": START}
 
 
+# ----------------------------------------------------------------- CPI (tariff proxy)
+# CAMMESA region -> INDEC CPI region
+CPI_REGION = {"GRAN BS.AS.": "GBA", "BUENOS AIRES": "Pampeana", "LITORAL": "Pampeana", "CENTRO": "Pampeana",
+              "CUYO": "Cuyo", "NOROESTE": "Noroeste", "NORESTE": "Noreste", "COMAHUE": "Patagonia",
+              "PATAGONICA": "Patagonia"}
+CPI_KEYS = {"GBA": ["gba", "gran buenos aires"], "Pampeana": ["pampeana"], "Cuyo": ["cuyo"],
+            "Noroeste": ["noroeste", "noa"], "Noreste": ["noreste", "nea"], "Patagonia": ["patagonia"]}
+
+
+def _search(q: str, limit: int = 100) -> list[dict]:
+    res = json.loads(get(SEARCH_API, dict(q=q, limit=limit)))["data"]
+    return [{"id": r["field"]["id"], "title": r["field"].get("title", ""), "description": r["field"].get("description", ""),
+             "frequency": r["field"].get("frequency", ""), "start": r["field"].get("time_index_start", ""),
+             "end": r["field"].get("time_index_end", ""), "dataset": r["dataset"].get("title", "")} for r in res]
+
+
+def _pick(cands: pd.DataFrame, region_keys: list[str], must: list[str]) -> str | None:
+    """First monthly CPI (base Dec 2016) series whose text mentions the region and all the ``must`` words."""
+    for _, c in cands.iterrows():
+        text = f"{c['id']} {c['title']} {c['description']} {c['dataset']}".lower().replace("_", " ")
+        if (c["frequency"] in ("", "R/P1M") and "2016" in text and any(k in text for k in region_keys)
+                and all(m in text for m in must)):
+            return c["id"]
+    return None
+
+
+def download_prices() -> dict:
+    found = (pd.DataFrame(_search("ipc vivienda agua electricidad gas combustibles region")
+                          + _search("ipc nivel general region") + _search("indice precios consumidor nivel general"))
+             .drop_duplicates("id"))
+    found.to_csv(OUT / "price_series_candidates.csv", index=False)
+    ids = {}
+    for reg, keys in CPI_KEYS.items():
+        ids[(reg, "housing_utilities")] = _pick(found, keys, ["vivienda"])
+        ids[(reg, "general")] = _pick(found, keys, ["general"])
+    missing = [f"{r}/{k}" for (r, k), v in ids.items() if v is None]
+    if missing:
+        print("  could not match:", ", ".join(missing), "-> see price_series_candidates.csv and paste it to me")
+    frames = []
+    for (reg, kind), sid in ids.items():
+        if sid is None:
+            continue
+        print(f"  CPI {reg:<9} {kind:<17} {sid}")
+        raw = get(SERIES_API, dict(ids=sid, format="csv", limit=5000, start_date=START))
+        OUT.joinpath("_cpi.csv").write_bytes(raw)
+        d = pd.read_csv(OUT / "_cpi.csv")
+        frames.append(pd.DataFrame({"cpi_region": reg, "kind": kind, "indice_tiempo": pd.to_datetime(d.iloc[:, 0]).dt.strftime("%Y-%m"),
+                                    "value": d.iloc[:, 1]}))
+        time.sleep(0.5)
+    OUT.joinpath("_cpi.csv").unlink(missing_ok=True)
+    if not frames:
+        raise RuntimeError("No CPI series matched; paste data/external/price_series_candidates.csv to me.")
+    cpi = pd.concat(frames).pivot_table(index=["cpi_region", "indice_tiempo"], columns="kind", values="value").reset_index()
+    if {"housing_utilities", "general"} <= set(cpi.columns):
+        cpi["relative_price"] = (cpi["housing_utilities"] / cpi["general"]).round(4)   # utilities price in real terms
+    out = pd.DataFrame([{"region": r, "cpi_region": c} for r, c in CPI_REGION.items()]).merge(cpi, on="cpi_region")
+    out.to_csv(OUT / "prices_monthly_regions.csv", index=False)
+    print(f"  -> {len(out)} region-months, {out['indice_tiempo'].min()} to {out['indice_tiempo'].max()}")
+    return {"url": SERIES_API, "series_ids": {f"{r}/{k}": v for (r, k), v in ids.items()}, "cpi_region_map": CPI_REGION}
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--only", choices=["weather", "emae"], help="download just one source")
+    ap.add_argument("--only", choices=["weather", "emae", "prices"], help="download just one source")
     ap.add_argument("--emae-id", help="override the EMAE series ID")
     a = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
@@ -183,6 +247,9 @@ def main() -> None:
     if a.only in (None, "emae"):
         print("EMAE (datos.gob.ar time-series API)")
         meta["emae"] = download_emae(a.emae_id)
+    if a.only in (None, "prices"):
+        print("CPI by region (datos.gob.ar time-series API)")
+        meta["prices"] = download_prices()
     meta["downloaded"] = date.today().isoformat()
     meta_path.write_text(json.dumps(meta, indent=2, ensure_ascii=False))
     print(f"Done. Files in {OUT}")
