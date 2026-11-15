@@ -10,7 +10,6 @@ It writes to data/external/:
   - emae_monthly.csv              INDEC monthly economic activity estimator (EMAE)
   - prices_monthly_regions.csv    INDEC CPI by region: housing & utilities division vs. general level
                                   (proxy for the real electricity tariff)
-  - price_series_candidates.csv   every CPI series the search found, to check the matching
   - sources.json                  URLs, series IDs and download date
 
 Needs pandas. If you get "CERTIFICATE_VERIFY_FAILED", install truststore (uses the
@@ -177,39 +176,19 @@ def download_emae(series_id: str | None) -> dict:
 CPI_REGION = {"GRAN BS.AS.": "GBA", "BUENOS AIRES": "Pampeana", "LITORAL": "Pampeana", "CENTRO": "Pampeana",
               "CUYO": "Cuyo", "NOROESTE": "Noroeste", "NORESTE": "Noreste", "COMAHUE": "Patagonia",
               "PATAGONICA": "Patagonia"}
-CPI_KEYS = {"GBA": ["gba", "gran buenos aires"], "Pampeana": ["pampeana"], "Cuyo": ["cuyo"],
-            "Noroeste": ["noroeste", "noa"], "Noreste": ["noreste", "nea"], "Patagonia": ["patagonia"]}
-
-
-def _search(q: str, limit: int = 100) -> list[dict]:
-    res = json.loads(get(SEARCH_API, dict(q=q, limit=limit)))["data"]
-    return [{"id": r["field"]["id"], "title": r["field"].get("title", ""), "description": r["field"].get("description", ""),
-             "frequency": r["field"].get("frequency", ""), "start": r["field"].get("time_index_start", ""),
-             "end": r["field"].get("time_index_end", ""), "dataset": r["dataset"].get("title", "")} for r in res]
-
-
-def _pick(cands: pd.DataFrame, region_keys: list[str], must: list[str]) -> str | None:
-    """First monthly CPI (base Dec 2016) series whose text mentions the region and all the ``must`` words."""
-    for _, c in cands.iterrows():
-        text = f"{c['id']} {c['title']} {c['description']} {c['dataset']}".lower().replace("_", " ")
-        if (c["frequency"] in ("", "R/P1M") and "2016" in text and any(k in text for k in region_keys)
-                and all(m in text for m in must)):
-            return c["id"]
-    return None
+# Monthly CPI series, base Dec 2016 (checked against the datos.gob.ar search results, Nov 2026)
+CPI_IDS = {
+    ("GBA", "housing_utilities"): "146.3_IVIVIENGBA_DICI_M_47", ("GBA", "general"): "145.3_INGGBAGBA_DICI_M_10",
+    ("Pampeana", "housing_utilities"): "146.3_IVIVIENANA_DICI_M_52", ("Pampeana", "general"): "145.3_INGPAMANA_DICI_M_15",
+    ("Cuyo", "housing_utilities"): "146.3_IVIVIENUYO_DICI_M_48", ("Cuyo", "general"): "145.3_INGCUYUYO_DICI_M_11",
+    ("Noroeste", "housing_utilities"): "146.3_IVIVIENNOA_DICI_M_47", ("Noroeste", "general"): "145.3_INGNOANOA_DICI_M_10",
+    ("Noreste", "housing_utilities"): "146.3_IVIVIENNEA_DICI_M_47", ("Noreste", "general"): "145.3_INGNEANEA_DICI_M_10",
+    ("Patagonia", "housing_utilities"): "146.3_IVIVIENNIA_DICI_M_53", ("Patagonia", "general"): "145.3_INGPATNIA_DICI_M_16",
+}
 
 
 def download_prices() -> dict:
-    found = (pd.DataFrame(_search("ipc vivienda agua electricidad gas combustibles region")
-                          + _search("ipc nivel general region") + _search("indice precios consumidor nivel general"))
-             .drop_duplicates("id"))
-    found.to_csv(OUT / "price_series_candidates.csv", index=False)
-    ids = {}
-    for reg, keys in CPI_KEYS.items():
-        ids[(reg, "housing_utilities")] = _pick(found, keys, ["vivienda"])
-        ids[(reg, "general")] = _pick(found, keys, ["general"])
-    missing = [f"{r}/{k}" for (r, k), v in ids.items() if v is None]
-    if missing:
-        print("  could not match:", ", ".join(missing), "-> see price_series_candidates.csv and paste it to me")
+    ids = dict(CPI_IDS)
     frames = []
     for (reg, kind), sid in ids.items():
         if sid is None:
@@ -223,7 +202,7 @@ def download_prices() -> dict:
         time.sleep(0.5)
     OUT.joinpath("_cpi.csv").unlink(missing_ok=True)
     if not frames:
-        raise RuntimeError("No CPI series matched; paste data/external/price_series_candidates.csv to me.")
+        raise RuntimeError("No CPI series downloaded.")
     cpi = pd.concat(frames).pivot_table(index=["cpi_region", "indice_tiempo"], columns="kind", values="value").reset_index()
     if {"housing_utilities", "general"} <= set(cpi.columns):
         cpi["relative_price"] = (cpi["housing_utilities"] / cpi["general"]).round(4)   # utilities price in real terms
