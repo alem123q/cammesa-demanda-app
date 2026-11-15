@@ -10,12 +10,14 @@ It writes to data/external/:
   - emae_monthly.csv              INDEC monthly economic activity estimator (EMAE)
   - sources.json                  URLs, series IDs and download date
 
-Only the standard library and pandas are needed.
+Needs pandas. If you get "CERTIFICATE_VERIFY_FAILED", install truststore (uses the
+operating system's certificates) or certifi:  pip install -U truststore certifi
 """
 from __future__ import annotations
 
 import argparse
 import json
+import ssl
 import time
 import urllib.parse
 import urllib.request
@@ -48,14 +50,40 @@ SEARCH_API = "https://apis.datos.gob.ar/series/api/search/"
 EMAE_ID = "143.3_NO_PR_2004_A_21"  # EMAE, original series (base 2004 = 100); checked at run time
 
 
+def _ssl_context() -> ssl.SSLContext:
+    """Prefer the OS certificate store (truststore), then certifi, then Python's default.
+
+    Some Python installs (e.g. an old Miniconda on Windows) ship an outdated certificate
+    bundle and fail with "certificate has expired" even though the site is fine.
+    """
+    try:
+        import truststore
+        return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    except ImportError:
+        pass
+    try:
+        import certifi
+        return ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        return ssl.create_default_context()
+
+
+SSL_CTX = _ssl_context()
+
+
 def get(url: str, params: dict, retries: int = 4) -> bytes:
     full = f"{url}?{urllib.parse.urlencode(params)}"
     for attempt in range(retries):
         try:
             req = urllib.request.Request(full, headers={"User-Agent": "cammesa-demand-portfolio"})
-            with urllib.request.urlopen(req, timeout=60) as r:
+            with urllib.request.urlopen(req, timeout=60, context=SSL_CTX) as r:
                 return r.read()
         except Exception as e:  # network hiccups or rate limits
+            if "CERTIFICATE_VERIFY_FAILED" in str(e):
+                raise RuntimeError(
+                    f"SSL certificate check failed for {url}.\n"
+                    "Fix: pip install -U truststore certifi   (and check that the PC's date and time are right)"
+                ) from e
             if attempt == retries - 1:
                 raise RuntimeError(f"Request failed: {full}\n{e}") from e
             time.sleep(5 * (attempt + 1))
