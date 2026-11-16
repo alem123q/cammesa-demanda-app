@@ -7,6 +7,7 @@ Punto de entrada. Cada sección es una página de la carpeta dashboard/views/.
     TP2 · Regresión             probar el pronóstico, comparar modelos, jugar con las variables
     TP3 · Clasificación         probar «sube o baja», mover el umbral, comparar modelos
     Agrupamiento                qué representa cada grupo y en qué grupo está cada región o agente
+    Más allá del TP             clima, actividad y tarifas; prueba pre-registrada 2022–2025
     Preguntas frecuentes        respuestas cortas a las preguntas de la cátedra
 
 Ejecutar localmente:  streamlit run app.py
@@ -31,10 +32,14 @@ paginas = {
     "Agrupamiento": [
         st.Page("dashboard/views/grupos.py", title="Grupos y buscador", icon="🧩"),
     ],
+    "Más allá del TP": [
+        st.Page("dashboard/views/eval_2022_2025.py", title="Clima, tarifas y prueba 2022–2025", icon="🌡️"),
+    ],
     "Ayuda": [
         st.Page("dashboard/views/preguntas.py", title="Preguntas frecuentes", icon="❓"),
     ],
 }
 st.navigation(paginas).run()
 
-st.sidebar.caption("Grupo 6 · Alemandi, Kirov, Palavecino · UNRaf 2026. Datos: CAMMESA, «Demanda últimos años».")
+st.sidebar.caption("TP: Grupo 6 · Alemandi, Kirov, Palavecino · UNRaf 2026. Continuación 2017–2025: F. Alemandi. "
+                   "Datos: CAMMESA, Open-Meteo, INDEC.")
