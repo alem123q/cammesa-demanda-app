@@ -1,84 +1,103 @@
-# Pronóstico de demanda eléctrica regional · CAMMESA
+# Electricity demand in Argentina: when does a model beat "same month last year"?
 
-Aplicación web del **Trabajo Práctico 4** de *Aprendizaje Automático y Grandes Datos*
-(Ingeniería en Computación, Universidad Nacional de Rafaela, 2026).
-**Grupo 6:** Francisco Alemandi · Eloy Kirov · Sebastián Palavecino.
+[![tests](https://github.com/alem123q/cammesa-demanda-app/actions/workflows/tests.yml/badge.svg)](https://github.com/alem123q/cammesa-demanda-app/actions/workflows/tests.yml)
+&nbsp;·&nbsp; **Live app (Spanish):** https://cammesa-demanda-unraf.streamlit.app
 
-🔗 **Aplicación desplegada:** https://cammesa-demanda-unraf.streamlit.app/
+Monthly electricity demand for Argentina's 9 wholesale-market regions (CAMMESA), 2017–2025.
+The project started as coursework (regression, classification and clustering on 2017–2020) and continues as a
+personal project that adds weather, economic activity and tariffs, extends the data to 2025, and tests the
+conclusions on four years that were set aside before looking at them.
 
-## Qué hace
+> 🇦🇷 **Resumen en español** al final.
 
-Es un tablero con cuatro secciones, pensado para que alguien sin conocimientos de programación pueda probar los
-modelos y entender los resultados:
+## Key findings
 
-| Sección | Página | Qué se puede hacer |
-|---|---|---|
-| Inicio | Inicio | Qué resuelve el proyecto, los resultados en tres números, cómo leer cada término y qué variables se usan. |
-| **TP2 · Regresión** | Probar el pronóstico | Elegir región y mes y ver el pronóstico de Ridge junto a la regla «igual que hace un año»; pronóstico en lote desde un CSV; registro de predicciones. |
-| | Comparar modelos | Tabla de los 6 modelos y 3 reglas; validación contra prueba; pronósticos de cada modelo contra lo real, por región. |
-| | Jugar con las variables | Sacar o agregar variables, prender o apagar la normalización y mover α: Ridge se reentrena al instante. |
-| **TP3 · Clasificación** | Probar «sube o baja» | Para una región y un mes, qué dijo cada modelo, qué dijo la persistencia y qué pasó. |
-| | Umbral y curvas | Mover el umbral y ver la matriz de confusión, las métricas y el punto sobre las curvas ROC y precisión-exhaustividad. |
-| | Comparar modelos | Tabla de los 8 clasificadores, F1 en validación y prueba, sobreajuste y matrices de confusión. |
-| Agrupamiento | Grupos y buscador | Curva de la silueta, qué representa cada grupo y buscador «¿en qué grupo está mi región / mi cliente?», por región y mes o por agente (868 series). |
-| Ayuda | Preguntas frecuentes | Respuestas cortas a las preguntas de la cátedra. |
-
-Validación de entradas: valores positivos, rangos por región (detecta errores de unidades), saltos poco
-habituales y meses fuera del período con datos.
-
-## El modelo
-
-| | |
+| | Result |
 |---|---|
-| Algoritmo | Regresión **Ridge** (α = 3,16), elegida y fijada antes de abrir la prueba (TP2) |
-| Predictoras | región (indicadores), demanda del mes anterior, demanda del mismo mes del año anterior, mes, trimestre |
-| Preprocesamiento | log(1 + x) de las demandas y del objetivo, escalado; todo dentro de un `Pipeline` |
-| Entrenamiento | enero 2018 – agosto 2019 (180 meses-región) |
-| Prueba | septiembre 2019 – febrero 2020 (54 meses-región), abierta una sola vez |
-| RMSE en la prueba | **76,7 GWh** (regla «mismo mes del año anterior»: **71,0 GWh**) |
+| **Course (2019–20 test)** | No model beat the seasonal rule *same month last year*. The pre-registered Ridge: 76.7 GWh RMSE vs 71.0 for the rule. The validation ranking of six models was exactly reversed on the test. |
+| **Exploration** | Modelling the year-over-year change with the month's actual weather cuts the error by 44 % (40.1 GWh). Using the *normal* weather instead loses the gain: the missing information was the weather itself. |
+| **Why demand fell in 2018–19 (−6.4 %)** | About half weather (mild summers, warm 2019 winter), about a third recession and tariff increases together (tariffs act with a 6–12 month lag), the rest one-off cases. |
+| **Pre-registered test, 2022–2025** | Explanatory model (actual weather and activity): **−37 %** RMSE vs the rule ✅. Forecast model (only information available in advance): **−9.1 %**, just short of the −10 % goal ❌. The course's Ridge: −1.9 %, a tie with the rule again. |
 
-**Lectura honesta:** el modelo no superó a la regla simple (la meta era 63,9 GWh). Aprendió en un período de
-caída de la demanda y se evaluó cuando volvía a crecer. Por eso la aplicación muestra siempre los dos valores.
+<p align="center"><img src="docs/figures/fig06_eval_by_year.png" width="720" alt="Test RMSE by year for the seasonal rule, the TP2 Ridge, the forecast model and the explanatory model"></p>
 
-## Estructura
+## The story in six notebooks
 
-```
-app.py                         punto de entrada: navegación entre páginas
-comun.py                       carga de datos, formato y colores compartidos
-paginas/                       una página por sección del tablero
-entrenar.py                    reconstruye y serializa el modelo Ridge (modelo/ridge_regional.joblib)
-preparar_resultados.py         reproduce TP2, TP3 y el agrupamiento y guarda los resultados en resultados/
-datos/serie_regional.csv       demanda mensual por región (9 regiones × 38 meses), ya limpia
-datos/agentes_perfiles.csv     perfil y grupo de cada serie agente-tarifa (análisis por agente)
-modelo/                        modelo serializado y metadatos (métricas, rangos, coeficientes)
-resultados/                    métricas, pronósticos y probabilidades de validación y prueba
-requirements.txt               dependencias con versión fija
-```
+| Notebook | What it shows |
+|---|---|
+| [01 · Data](notebooks/01_data.ipynb) | Two CAMMESA sources joined into one series (9 regions × 108 months), checked on 14 overlapping months; weather, EMAE and tariff proxy |
+| [02 · TP2 regression](notebooks/02_tp2_regression.ipynb) | Six regressors vs three rules on the course split; why validation did not predict the test |
+| [03 · TP3 classification](notebooks/03_tp3_classification.ipynb) | Up or down vs last year: the class balance flips from 37 % to 85 % *up* |
+| [04 · Clustering](notebooks/04_clustering.ipynb) | 868 agent series in three groups; region-months group by geography and season, not by direction |
+| [05 · External drivers](notebooks/05_external_drivers.ipynb) | Weather, activity and tariffs on the course period; decomposition of the 2018–19 drop |
+| [06 · Evaluation 2022–2025](notebooks/06_evaluation_2022_2025.ipynb) | The pre-registered test, opened once |
 
-## Ejecutar localmente
+<p align="center"><img src="docs/figures/fig01_demand.png" width="720" alt="Monthly national demand 2017-2025 with the course test and the new test periods shaded"></p>
 
-Requiere Python 3.10 a 3.12.
+## How the evaluation was kept honest
+
+- **Temporal splits only.** Every model is trained on the past and evaluated on later months; validation uses consecutive blocks inside the training period.
+- **Pre-registration.** For both the course test and the 2022–2025 test, the model, metric and goal were written down before the test was opened. The [2022–2025 plan](docs/preregistro_2022_2025.md) is in the git history *before* the validation and test commits.
+- **Results as they came out.** The forecasting goal was missed by 0.9 points and is reported as missed. Anything tried after seeing a test is labelled post-hoc.
+- **Reproducible.** `pytest` checks that the pipeline still gives the course numbers (Ridge 76.7, rule 71.0, SVM 0.41 / 0.54, persistence 0.83); GitHub Actions runs it on every push.
+
+## Reproduce
 
 ```bash
-git clone https://github.com/alem123q/cammesa-demanda-app.git
-cd cammesa-demanda-app
-python -m venv .venv
-source .venv/bin/activate          # en Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-python entrenar.py                 # opcional: vuelve a generar el modelo (da RMSE 76,7 / 71,0 GWh)
-python preparar_resultados.py      # opcional: vuelve a calcular los resultados del TP2 y el TP3 (unos 20 s)
+pip install -r requirements.txt -r requirements-dev.txt
+python scripts/build_results.py          # course datasets, results and clusters from the raw file
+python scripts/train.py                  # model used by the app
+python scripts/build_extended.py         # 2017-2025 regional series from the annual reports
+python scripts/evaluate_2022_2025.py --stage validation
+python scripts/evaluate_2022_2025.py --stage test
+pytest -q
 streamlit run app.py
 ```
 
-## Datos
+`scripts/download_external.py` re-downloads weather (Open-Meteo), EMAE and CPI (datos.gob.ar); the CSVs are already in `data/external/`.
 
-CAMMESA, «Demanda últimos años», Portal de datos abiertos de energía, Secretaría de Energía de la Nación
-(datos.energia.gob.ar). Se excluyó la categoría «Mercado a Término» (761 de sus 766 filas son valores de
-relleno de −0,001 a −0,003 MWh) y se sumó la demanda de todos los agentes por región y mes.
+## Repository
 
-## Limitaciones
+```
+cammesa/            package: data loading, features, regression, classification, clustering,
+                    exploration and the 2022-2025 evaluation
+scripts/            command-line entry points (build, train, download, evaluate)
+notebooks/          the analysis, executed
+dashboard/          Streamlit app (UI in Spanish); app.py is the entry point
+data/raw/           CAMMESA open-data file (2017-2020) and annual report databases (2019-2025)
+data/external/      weather, EMAE and CPI
+data/processed/     regional series and agent profiles
+results/, models/   outputs read by the app and the notebooks
+docs/               pre-registration and figures
+tests/              reproduction tests
+```
 
-- Solo usa la historia de la demanda: no conoce temperatura, actividad económica ni tarifas.
-- Los datos terminan en febrero de 2020; pronosticar más allá es un ejercicio, no un pronóstico confiable.
-- En Streamlit Community Cloud el disco no es persistente: el registro de predicciones se pierde al
-  reiniciarse el servidor (se puede descargar desde la pestaña «Registro»).
+Code is in English; data columns keep the Spanish names of the CAMMESA files (`region`, `demanda_MWh`, `rezago_12`…).
+
+## Data sources
+
+- CAMMESA, *Demanda últimos años* — open-data portal, [datos.gob.ar/dataset/publicaciones-cammesa](https://datos.gob.ar/dataset/publicaciones-cammesa).
+- CAMMESA, *Base de datos Informe Anual* 2020–2025 — cammesaweb.cammesa.com.
+- Open-Meteo historical weather API (ERA5 reanalysis).
+- INDEC, EMAE and regional CPI, via the datos.gob.ar time-series API.
+
+## Credits
+
+The 2017–2020 analysis (TP1–TP4) was done for *Aprendizaje Automático y Grandes Datos*, Computer Engineering,
+Universidad Nacional de Rafaela (2026), by Francisco Alemandi, Eloy Kirov and Sebastián Palavecino.
+The restructuring, the external variables, the 2017–2025 extension and the 2022–2025 evaluation are by
+Francisco Alemandi.
+
+---
+
+## 🇦🇷 Resumen en español
+
+Demanda eléctrica mensual de las 9 regiones de CAMMESA, 2017–2025.
+
+- **En el trabajo de la materia** ningún modelo le ganó a la regla «mismo mes del año anterior».
+- **Explorando**, apareció lo que faltaba: el clima del mes explica gran parte de lo que la regla no ve. La caída de 2018–2019 fue mitad clima y un tercio recesión y tarifas.
+- **En una prueba pre-registrada sobre 2022–2025**, que nadie había mirado:
+  - el modelo explicativo, con clima y actividad reales, tiene **37 % menos error** que la regla;
+  - el modelo de pronóstico, con solo la información disponible de antemano, mejora **9,1 %**, apenas debajo de la meta de 10 %.
+
+La aplicación está en español: https://cammesa-demanda-unraf.streamlit.app

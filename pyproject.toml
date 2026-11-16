@@ -1,0 +1,12 @@
+[project]
+name = "cammesa"
+version = "1.1.0"
+description = "Monthly electricity demand in Argentina (CAMMESA): forecasting, classification and clustering"
+requires-python = ">=3.10"
+
+[tool.setuptools]
+packages = ["cammesa"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore"]
