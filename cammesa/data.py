@@ -75,3 +75,18 @@ def agent_profiles(raw: pd.DataFrame) -> pd.DataFrame:
     prof["agente_nemo"] = [s.split(" | ")[0] for s in prof.index]
     prof["agente"] = prof["agente_nemo"].map(names)
     return prof.join(labels)
+
+
+def extended_regional_series(raw: pd.DataFrame | None = None) -> pd.DataFrame:
+    """Regional series from January 2017 to the last month in the annual report files.
+
+    2017-2018 come from the open-data file of the course; from 2019 on, from CAMMESA's annual
+    report databases (final values; the open-data file had provisional ones for its last months).
+    """
+    from .annual import read_all_annual
+
+    old = regional_series(load_raw() if raw is None else raw)
+    new = regional_series(read_all_annual())
+    old = old[old["indice_tiempo"] < new["indice_tiempo"].min()].assign(fuente="datos abiertos (TP)")
+    new = new.assign(fuente="informes anuales CAMMESA")
+    return pd.concat([old, new], ignore_index=True).sort_values(["region", "indice_tiempo"]).reset_index(drop=True)

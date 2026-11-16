@@ -40,21 +40,25 @@ def _workbook(path: Path) -> openpyxl.Workbook:
 def read_annual(path: Path | str) -> pd.DataFrame:
     """Demand detail of one annual report file (zip or xlsx)."""
     wb = _workbook(Path(path))
-    ws = wb["DEMANDA"]
+    # 2022 onwards: one sheet "DEMANDA". 2020-2021: "Demanda 2020vs2019" (detail) and "Demanda Anual" (summary).
+    sheets = [ws for ws in wb.worksheets if ws.title.upper().startswith("DEMANDA") and "ANUAL" not in ws.title.upper()]
     header, rows = None, []
-    # The sheet declares 16384 columns; read only the first 20 and stream the rows.
-    for row in ws.iter_rows(max_col=20, values_only=True):
-        if header is None:
-            cells = [str(c).strip().upper() if c is not None else "" for c in row]
-            if "AGENTE NEMO" in cells and "AÑO" in cells:
-                header = {i: KEYS[c] for i, c in enumerate(cells) if c in KEYS}
-            continue
-        if row[min(header)] is None and all(row[i] is None for i in header):
-            continue
-        rows.append([row[i] for i in header])
+    for ws in sheets:
+        # The sheets declare up to 16384 columns; read only the first 20 and stream the rows.
+        for row in ws.iter_rows(max_col=20, values_only=True):
+            if header is None:
+                cells = [str(c).strip().upper() if c is not None else "" for c in row]
+                if "AGENTE NEMO" in cells and "AÑO" in cells:
+                    header = {i: KEYS[c] for i, c in enumerate(cells) if c in KEYS}
+                continue
+            if all(row[i] is None for i in header):
+                continue
+            rows.append([row[i] for i in header])
+        if header is not None:
+            break
     wb.close()
     if header is None:
-        raise ValueError(f"No detail table found in the DEMANDA sheet of {path}")
+        raise ValueError(f"No demand detail table found in {path}")
     d = pd.DataFrame(rows, columns=list(header.values())).dropna(subset=["agente_nemo"])
     month = pd.to_datetime(d["mes"])
     d["indice_tiempo"], d["anio"], d["mes"] = month.dt.strftime("%Y-%m"), month.dt.year, month.dt.month
