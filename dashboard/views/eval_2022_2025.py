@@ -64,6 +64,21 @@ with t1:
         "- **El clima, la actividad y las tarifas explican gran parte de lo que la regla no ve**: 37 % menos error.\n"
         "- **Para pronosticar de verdad**, sin conocer el clima del mes, la mejora es de 9 %: gana en 2022 y 2023, "
         "empata en 2024 y 2025, y queda apenas debajo de la meta.")
+    st.subheader("Clasificación: ¿sube o baja frente al año anterior?")
+    cl = csv("ext_clf_prueba_metricas.csv").set_index("modelo")
+    pers = cl.loc["Regla: persistencia"]
+    c = st.columns(3)
+    for col, (k, txt) in zip(c, [("SVM del TP3", "Solo la historia de la demanda, como en el TP3. Sin meta."),
+                                ("Clasificador de pronóstico", "«Sube» si el modelo de pronóstico prevé un aumento. Meta 1"),
+                                ("Clasificador explicativo", "«Sube» si el modelo explicativo prevé un aumento. Meta 2")]):
+        r = cl.loc[k]
+        col.metric(k + " · F1 «sube»", num(r["F1 «sube»"], 2), num(r["F1 «sube»"] - pers["F1 «sube»"], 2) + " vs. persistencia")
+        ok = r["F1 «sube»"] > pers["F1 «sube»"] and r["Kappa"] > pers["Kappa"]
+        col.caption(f"Kappa {num(r['Kappa'], 2)} (persistencia {num(pers['Kappa'], 2)}). {txt}" +
+                    ("" if k == "SVM del TP3" else f" (superar a la persistencia en F1 y kappa): **{'cumplida ✅' if ok else 'no cumplida ❌'}**"))
+    st.caption(f"Persistencia: «sube» si el mes anterior subió (F1 {num(pers['F1 «sube»'], 2)}). «Siempre sube» tiene F1 "
+               f"{num(cl.loc['Siempre «sube»', 'F1 «sube»'], 2)} porque el 56 % de los meses subió, pero kappa 0: nunca "
+               "detecta una baja. Por eso la meta exige también kappa.")
     alphas = jsn("ext_alphas.json")
     with st.expander("Detalle de los modelos"):
         st.markdown(
